@@ -327,25 +327,18 @@ async def health():
 async def invoke_default(request: Request):
     """
     Default AgentCore invocation endpoint.
-    Accepts flexible payload formats.
+    Simple test version to debug 502 errors.
     """
+    print("[INVOKE] Endpoint called!")
     try:
         body = await request.json()
-        print(f"[INVOKE] Received payload: {json.dumps(body, indent=2)}")
-
-        # Handle different payload formats
-        prompt = body.get("prompt") or body.get("task") or body.get("input", {}).get("prompt")
-        if not prompt:
-            return JSONResponse(status_code=400, content={"error": "No prompt/task provided"})
-
-        # Use /api/run logic
-        req = RunRequest(task=prompt, visible=True)
-        return await run_test(request, req)
+        print(f"[INVOKE] Received payload: {body}")
+        return {"status": "ok", "received": body}
     except Exception as e:
-        print(f"[ERROR] invoke_default failed: {e}")
+        print(f"[ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return {"error": str(e)}
 
 
 def _summarise(tool: str, inp: dict) -> str:
