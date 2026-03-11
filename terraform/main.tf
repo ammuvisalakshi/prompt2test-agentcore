@@ -105,62 +105,10 @@ resource "aws_iam_role_policy" "agentcore_bedrock_policy" {
   })
 }
 
-# ── AgentCore Memory Store ────────────────────────────────────────────────────
-resource "aws_bedrock_agentcore_memory" "test_memory_store" {
-  name        = "prompt2test-memory-store"
-  description = "Memory store for Prompt2TestAgentCore saved tests and history"
-}
-
-# ── AgentCore Browser Runtime ─────────────────────────────────────────────────
-resource "aws_bedrock_agentcore_browser_runtime" "test_browser" {
-  name        = "prompt2test-browser"
-  description = "Browser runtime for Prompt2TestAgentCore automation"
-}
-
-# ── AgentCore Runtime ─────────────────────────────────────────────────────────
-resource "aws_bedrock_agentcore_runtime" "test_runtime" {
-  name                  = "prompt2test-agentcore"
-  description           = "Prompt2TestAgentCore - AI-driven test automation agent"
-  role_arn              = aws_iam_role.agentcore_runtime_role.arn
-  memory_store_id       = aws_bedrock_agentcore_memory.test_memory_store.id
-  browser_runtime_id    = aws_bedrock_agentcore_browser_runtime.test_browser.id
-
-  tags = {
-    Environment = var.environment
-    Project     = "Prompt2TestAgentCore"
-  }
-}
-
-# ── Runtime Endpoint / Deployment ────────────────────────────────────────────
-resource "aws_bedrock_agentcore_endpoint" "test_endpoint" {
-  runtime_arn = aws_bedrock_agentcore_runtime.test_runtime.arn
-  name        = "DEFAULT"
-
-  # Use the ECR repository URI
-  container_image = "${aws_ecr_repository.agent.repository_url}:${var.image_tag}"
-
-  # Port must match Dockerfile EXPOSE
-  port = 8000
-
-  # Environment Variables
-  environment_variables = {
-    AWS_REGION                    = var.aws_region
-    BEDROCK_MODEL                 = var.bedrock_model
-    AGENTCORE_BROWSER_ENDPOINT    = "https://${aws_bedrock_agentcore_browser_runtime.test_browser.id}.browser.bedrock-agentcore.${var.aws_region}.amazonaws.com/mcp"
-    AGENTCORE_MEMORY_STORE_ID     = aws_bedrock_agentcore_memory.test_memory_store.id
-    ALLOWED_ORIGINS               = var.allowed_origins
-    OTEL_SERVICE_NAME             = "prompt2test-agent"
-  }
-
-  # Container resource configuration
-  memory            = var.container_memory_mb
-  cpu               = var.container_cpu
-
-  tags = {
-    Environment = var.environment
-    Project     = "Prompt2TestAgentCore"
-  }
-}
+# ── AgentCore resources are created via AWS CLI (see AGENTCORE_SETUP.md) ────
+# Terraform AWS provider doesn't yet support bedrock-agentcore resources
+# You'll create Memory Store, Browser Runtime, Runtime, and Endpoint manually
+# using the AWS CLI commands in AGENTCORE_SETUP.md
 
 # ── Outputs ───────────────────────────────────────────────────────────────────
 output "ecr_repository_url" {
@@ -173,47 +121,26 @@ output "ecr_registry_id" {
   value       = aws_ecr_repository.agent.registry_id
 }
 
-output "runtime_arn" {
-  description = "AgentCore Runtime ARN"
-  value       = aws_bedrock_agentcore_runtime.test_runtime.arn
-}
-
-output "endpoint_arn" {
-  description = "Runtime Endpoint ARN"
-  value       = aws_bedrock_agentcore_endpoint.test_endpoint.arn
-}
-
-output "browser_endpoint" {
-  description = "AgentCore Browser endpoint URL"
-  value       = "https://${aws_bedrock_agentcore_browser_runtime.test_browser.id}.browser.bedrock-agentcore.${var.aws_region}.amazonaws.com/mcp"
-}
-
-output "memory_store_id" {
-  description = "AgentCore Memory Store ID"
-  value       = aws_bedrock_agentcore_memory.test_memory_store.id
+output "ecr_login_command" {
+  description = "Command to authenticate with ECR"
+  value       = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.agent.repository_url}"
 }
 
 output "docker_push_command" {
-  description = "Command to push Docker image to ECR"
+  description = "Command to build and push Docker image to ECR (run from project root)"
   value = <<-EOT
-    # 1. Authenticate with ECR
-    aws ecr get-login-password --region ${var.aws_region} | \
-      docker login --username AWS --password-stdin ${aws_ecr_repository.agent.repository_url}
-
-    # 2. Build image for arm64
-    docker buildx build --platform linux/arm64 \
-      -t ${aws_ecr_repository.agent.repository_url}:${var.image_tag} \
-      --push .
+docker buildx build --platform linux/arm64 \
+  -t ${aws_ecr_repository.agent.repository_url}:${var.image_tag} \
+  --push .
   EOT
 }
 
-output "invocation_command" {
-  description = "Example command to invoke the agent"
-  value = <<-EOT
-    aws bedrock-agentcore invoke-agent-runtime \
-      --runtime-arn '${aws_bedrock_agentcore_runtime.test_runtime.arn}' \
-      --runtime-session-id 'test-session-1234567890123456789012345' \
-      --payload '{"prompt": "Your test task here"}' \
-      --region ${var.aws_region}
-  EOT
+output "iam_role_arn" {
+  description = "IAM Role ARN (use for AgentCore runtime creation)"
+  value       = aws_iam_role.agentcore_runtime_role.arn
+}
+
+output "next_step" {
+  description = "Next steps after Terraform"
+  value       = "See AGENTCORE_SETUP.md for AWS CLI commands to create Memory Store, Browser Runtime, Runtime, and Endpoint"
 }
