@@ -326,19 +326,34 @@ async def health():
 @app.post("/invoke")
 async def invoke_default(request: Request):
     """
-    Default AgentCore invocation endpoint.
-    Simple test version to debug 502 errors.
+    AgentCore invocation endpoint.
+    Accepts {"prompt": "task description"} and runs the agent.
     """
     print("[INVOKE] Endpoint called!")
     try:
         body = await request.json()
         print(f"[INVOKE] Received payload: {body}")
-        return {"status": "ok", "received": body}
+
+        # Extract prompt
+        prompt = body.get("prompt") or body.get("task")
+        if not prompt:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Missing 'prompt' or 'task' field"}
+            )
+
+        # Delegate to run_test logic
+        req = RunRequest(task=prompt, visible=True)
+        return await run_test(request, req)
+
     except Exception as e:
         print(f"[ERROR] {str(e)}")
         import traceback
         traceback.print_exc()
-        return {"error": str(e)}
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e), "type": type(e).__name__}
+        )
 
 
 def _summarise(tool: str, inp: dict) -> str:
