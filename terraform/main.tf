@@ -129,6 +129,27 @@ resource "aws_iam_role_policy" "agentcore_ecr_policy" {
   })
 }
 
+# ── IAM Policy for CloudWatch Logs (Agent Monitoring & Debugging) ──────────────
+resource "aws_iam_role_policy" "agentcore_logs_policy" {
+  name   = "prompt2test-logs-policy"
+  role   = aws_iam_role.agentcore_runtime_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/bedrock/agentcore/*"
+      }
+    ]
+  })
+}
+
 # ── AgentCore resources are created via AWS CLI (see AGENTCORE_SETUP.md) ────
 # Terraform AWS provider doesn't yet support bedrock-agentcore resources
 # You'll create Memory Store, Browser Runtime, Runtime, and Endpoint manually
