@@ -315,8 +315,10 @@ async def replay_test(request: Request, req: ReplayRequest):
     return EventSourceResponse(event_generator())
 
 
+@app.get("/health")
 @app.get("/api/health")
 async def health():
+    """Health check endpoint - AgentCore requires this"""
     return {"status": "ok"}
 
 
