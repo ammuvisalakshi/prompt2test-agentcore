@@ -1,0 +1,21 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Prompt2TestAgentCore - Terraform Variables (Example)
+# Copy this to terraform.tfvars and customize for your deployment
+# ──────────────────────────────────────────────────────────────────────────────
+
+aws_region = "us-east-1"
+environment = "dev"
+
+# ECR configuration
+ecr_repository_name = "prompt2test-agent"
+image_tag = "latest"
+
+# Bedrock model
+bedrock_model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+# CORS origins
+allowed_origins = "*"
+
+# Container resources
+container_memory_mb = 1024
+container_cpu = 512

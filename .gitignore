@@ -13,3 +13,14 @@ build/
 *.egg-info/
 .DS_Store
 Thumbs.db
+
+# Terraform
+terraform/terraform.tfvars
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.state
+terraform/terraform.state.*
+
+# AWS
+.aws/credentials
+.aws/config
