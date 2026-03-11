@@ -320,6 +320,32 @@ async def health():
     return {"status": "ok"}
 
 
+@app.post("/")
+@app.post("/invoke")
+async def invoke_default(request: Request):
+    """
+    Default AgentCore invocation endpoint.
+    Accepts flexible payload formats.
+    """
+    try:
+        body = await request.json()
+        print(f"[INVOKE] Received payload: {json.dumps(body, indent=2)}")
+
+        # Handle different payload formats
+        prompt = body.get("prompt") or body.get("task") or body.get("input", {}).get("prompt")
+        if not prompt:
+            return JSONResponse(status_code=400, content={"error": "No prompt/task provided"})
+
+        # Use /api/run logic
+        req = RunRequest(task=prompt, visible=True)
+        return await run_test(request, req)
+    except Exception as e:
+        print(f"[ERROR] invoke_default failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 def _summarise(tool: str, inp: dict) -> str:
     if tool == "browser_snapshot":
         return "Read page structure"
